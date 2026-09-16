@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider, useAccount, useConnect } from "wagmi";
+import { WagmiProvider, useAccount, useConnect, useSignTypedData } from "wagmi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +47,7 @@ const APPROVE_TYPES = {
 function ApproveFlow({ agentAddress, onDone }: { agentAddress: string; onDone: () => void }) {
   const { connectors, connectAsync } = useConnect();
   const { address, connector: activeConnector } = useAccount();
+  const { signTypedDataAsync } = useSignTypedData();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -60,24 +61,15 @@ function ApproveFlow({ agentAddress, onDone }: { agentAddress: string; onDone: (
       if (!acct) acct = (await connectAsync({ connector: injectedConnector })).accounts[0];
       const conn = activeConnector ?? injectedConnector;
       // user-signed actions (approveAgent) use a TIMESTAMP nonce — SDK convention
-      const nonce = Date.now();
+      const nonceMs = Date.now();
       const message = {
         hyperliquidChain: "Mainnet",
         agentAddress: agentAddress as `0x${string}`,
         agentName: "Shortfin",
-        nonce,
+        nonce: BigInt(nonceMs),
       };
-      const client = await (conn as unknown as {
-        getWalletClient: () => Promise<{
-          signTypedData: (a: {
-            domain: Record<string, unknown>;
-            types: typeof APPROVE_TYPES;
-            primaryType: string;
-            message: Record<string, unknown>;
-          }) => Promise<`0x${string}`>;
-        }>;
-      }).getWalletClient();
-      const signature = await client.signTypedData({
+      const signature = await signTypedDataAsync({
+        connector: conn,
         domain: {
           name: "HyperliquidSignTransaction",
           version: "1",
@@ -92,9 +84,9 @@ function ApproveFlow({ agentAddress, onDone }: { agentAddress: string; onDone: (
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: { type: "approveAgent", ...message, signatureChainId: "0x66eee" },
+          action: { type: "approveAgent", ...message, nonce: nonceMs, signatureChainId: "0x66eee" },
           signature,
-          nonce,
+          nonce: nonceMs,
         }),
       });
       const body = await res.json();

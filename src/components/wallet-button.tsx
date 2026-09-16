@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { WagmiProvider, useAccount, useConnect, type Connector } from "wagmi";
+import { WagmiProvider, useAccount, useConnect, useSignMessage, type Connector } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { wagmiConfig } from "@/lib/wagmi";
@@ -25,6 +25,7 @@ function short(a: string): string {
 function ConnectFlow() {
   const { connectors, connectAsync, isPending: connecting } = useConnect();
   const { address, connector: activeConnector } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const [me, setMe] = useState<Me>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -48,10 +49,7 @@ function ConnectFlow() {
       const lower = acct.toLowerCase();
       const { nonce } = (await api("/api/auth/nonce")) as { nonce: string };
       const message = `Shortfin sign-in\nnonce: ${nonce}\naddress: ${lower}`;
-      const client = await (conn as unknown as {
-        getWalletClient: () => Promise<{ signMessage: (a: { message: string }) => Promise<`0x${string}`> }>;
-      }).getWalletClient();
-      const signature = await client.signMessage({ message });
+      const signature = await signMessageAsync({ connector: conn, message });
       const verified = await api("/api/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
