@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiProvider, useAccount, useConnect } from "wagmi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { generateAgentKey, type UserProfile } from "@/lib/api";
+import { generateAgentKey, markAgentApproved, type UserProfile } from "@/lib/api";
+import { wagmiConfig } from "@/lib/wagmi";
 
 function CopyIcon() {
   return (
@@ -24,11 +27,99 @@ function KeyIcon() {
   );
 }
 
+const APPROVE_TYPES = {
+  "HyperliquidTransaction:ApproveAgent": [
+    { name: "hyperliquidChain", type: "string" },
+    { name: "agentAddress", type: "address" },
+    { name: "agentName", type: "string" },
+    { name: "nonce", type: "uint64" },
+  ],
+  EIP712Domain: [
+    { name: "name", type: "string" },
+    { name: "version", type: "string" },
+    { name: "chainId", type: "uint256" },
+    { name: "verifyingContract", type: "address" },
+  ],
+} as const;
+
+/** One-signature approveAgent: wallet signs the EIP-712 payload, browser posts the
+ *  signed action straight to Hyperliquid (CORS-open), server marks the agent approved. */
+function ApproveFlow({ agentAddress, onDone }: { agentAddress: string; onDone: () => void }) {
+  const { connectors, connectAsync } = useConnect();
+  const { address, connector: activeConnector } = useAccount();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function approve() {
+    setErr(null);
+    setBusy(true);
+    try {
+      const injectedConnector = connectors.find((c) => c.id === "injected");
+      if (!injectedConnector) throw new Error("no injected wallet found — install MetaMask/Brave");
+      let acct = address;
+      if (!acct) acct = (await connectAsync({ connector: injectedConnector })).accounts[0];
+      const conn = activeConnector ?? injectedConnector;
+      // user-signed actions (approveAgent) use a TIMESTAMP nonce — SDK convention
+      const nonce = Date.now();
+      const message = {
+        hyperliquidChain: "Mainnet",
+        agentAddress: agentAddress as `0x${string}`,
+        agentName: "Shortfin",
+        nonce,
+      };
+      const client = await (conn as unknown as {
+        getWalletClient: () => Promise<{
+          signTypedData: (a: {
+            domain: Record<string, unknown>;
+            types: typeof APPROVE_TYPES;
+            primaryType: string;
+            message: Record<string, unknown>;
+          }) => Promise<`0x${string}`>;
+        }>;
+      }).getWalletClient();
+      const signature = await client.signTypedData({
+        domain: {
+          name: "HyperliquidSignTransaction",
+          version: "1",
+          chainId: 421614,
+          verifyingContract: "0x0000000000000000000000000000000000000000",
+        },
+        types: APPROVE_TYPES,
+        primaryType: "HyperliquidTransaction:ApproveAgent",
+        message,
+      });
+      const res = await fetch("https://api.hyperliquid.xyz/exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: { type: "approveAgent", ...message, signatureChainId: "0x66eee" },
+          signature,
+          nonce,
+        }),
+      });
+      const body = await res.json();
+      if (body?.status !== "ok") throw new Error(body?.response || body?.error || `HTTP ${res.status}`);
+      await markAgentApproved();
+      onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Button size="lg" className="w-full sm:w-auto" onClick={approve} disabled={busy}>
+        {busy ? "Confirm in wallet…" : "Approve on Hyperliquid"}
+      </Button>
+      {err && <p className="text-xs text-down" role="alert">{err}</p>}
+    </div>
+  );
+}
+
 /** Connect Hyperliquid — trade-only agent key provisioning.
- *  Generates a secp256k1 keypair server-side; the private key is AES-256-GCM
- *  encrypted before it touches disk and never leaves the vault. The user
- *  approves the agent address from their own wallet — approval activation
- *  ships with 3b-signing. */
+ *  Server generates a secp256k1 keypair (AES-256-GCM at rest); the user approves
+ *  the agent from their own wallet with one signature. Trade-only: no withdrawals. */
 export function AgentCard({
   user,
   vaultReady,
@@ -89,7 +180,15 @@ export function AgentCard({
           Connect Hyperliquid
         </CardTitle>
         {status !== "none" && (
-          <Badge tone={status === "pending_approval" ? "warn" : status === "active" ? "up" : "neutral"}>
+          <Badge
+            tone={
+              status === "approved" || status === "active"
+                ? "up"
+                : status === "pending_approval"
+                  ? "warn"
+                  : "neutral"
+            }
+          >
             {status === "pending_approval" ? "pending approval" : status}
           </Badge>
         )}
@@ -126,9 +225,25 @@ export function AgentCard({
                 </Button>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Approve it from your wallet: Hyperliquid app → API → <span className="text-foreground">Approve an
-              API wallet</span>, paste the address above. The approval flow activates next (3b-signing).
+            {status === "pending_approval" ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  One signature activates the connection — your wallet approves this agent for trading on
+                  Hyperliquid. Revocable anytime from the Hyperliquid app.
+                </p>
+                <WagmiProvider config={wagmiConfig}>
+                  <ApproveFlow agentAddress={agentAddress ?? ""} onDone={onProvisioned} />
+                </WagmiProvider>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                <span className="text-up font-medium">Connected.</span> Your agent is approved — trading
+                activation ships with the next release.
+              </p>
+            )}
+            <p className="text-xs text-subtle-foreground">
+              Prefer manual? Hyperliquid app → API → <span className="text-foreground">Approve an API wallet</span>{" "}
+              and paste the address above — same effect.
             </p>
             {err && <p className="text-xs text-down" role="alert">{err}</p>}
           </>

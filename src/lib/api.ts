@@ -266,6 +266,10 @@ export function generateAgentKey() {
   return poster<{ agent_address: string; agent_status: string }>("/api/user/agent", {});
 }
 
+export function markAgentApproved() {
+  return poster<{ ok: boolean; agent_status: string }>("/api/user/agent/approved", {});
+}
+
 export function fmtAddress(a: string): string {
   return a.slice(0, 6) + "…" + a.slice(-4);
 }
