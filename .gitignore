@@ -1,0 +1,22 @@
+# dependencies
+/node_modules
+
+# build output
+/.next
+/out
+
+# secrets & env (NEVER commit tokens)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+
+# OS / editor
+.DS_Store
+.idea
+.vscode
+
+# vercel
+.vercel
