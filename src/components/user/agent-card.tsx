@@ -73,7 +73,7 @@ function ApproveFlow({ agentAddress, onDone }: { agentAddress: string; onDone: (
         domain: {
           name: "HyperliquidSignTransaction",
           version: "1",
-          chainId: 421614,
+          chainId: BigInt(421614),
           verifyingContract: "0x0000000000000000000000000000000000000000",
         },
         types: APPROVE_TYPES,
