@@ -218,6 +218,58 @@ export function runAction(body: {
   return poster<ActionResult>("/api/actions", body);
 }
 
+/* ── user console (/api/user/*) — session-cookie auth ─────────────── */
+
+export interface StrategyOption {
+  id: string;
+  name: string;
+  spacing_bps: number;
+  tagline: string;
+  risk_note: string;
+}
+
+export interface UserProfile {
+  user: {
+    address: string;
+    role: "admin" | "user";
+    tier: string;
+    strategy: string | null;
+    agent_address: string | null;
+    agent_status: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+  strategies: StrategyOption[];
+  fee_note: string;
+  vault_ready: boolean;
+}
+
+export interface UserAccountData {
+  address: string;
+  equity: number;
+  allocated_margin: number;
+  unrealized_pnl: number;
+  positions: Position[];
+  fills_24h: number;
+  realized_24h: number;
+  fees_24h: number;
+  fills_recent: Fill[];
+  venue_ttl_s: number;
+  ts: number;
+}
+
+export function saveUserStrategy(strategy: string) {
+  return poster<{ ok: true; strategy: string }>("/api/user/strategy", { strategy });
+}
+
+export function generateAgentKey() {
+  return poster<{ agent_address: string; agent_status: string }>("/api/user/agent", {});
+}
+
+export function fmtAddress(a: string): string {
+  return a.slice(0, 6) + "…" + a.slice(-4);
+}
+
 /* ── formatting helpers (shared, deterministic) ───────────────────── */
 
 export const fmtUsd = (n: number | null | undefined, digits = 2) =>

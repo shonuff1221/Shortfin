@@ -3,12 +3,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { FinMark } from "@/components/brand-mark";
-import { Button } from "@/components/ui/button";
 import WalletButton from "@/components/wallet-button";
+import { UserConsole } from "@/components/user/console";
 import { decodeSession, SESSION_COOKIE } from "@/lib/session";
 
-/** User console stub — real console ships in 3b (agent-key onboarding,
- *  strategy menu, personal P&L). Wallet session required. */
+/** User console — real account surface (3b-foundation): agent-key
+ *  onboarding, live wallet overview, strategy menu, fee note.
+ *  Wallet session required (any role). */
 export default async function UserPage() {
   const jar = await cookies();
   const session = decodeSession(jar.get(SESSION_COOKIE)?.value);
@@ -26,21 +27,8 @@ export default async function UserPage() {
           <WalletButton />
         </nav>
       </header>
-      <main className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 py-24 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Welcome aboard, <span className="font-mono text-brand">{session.address.slice(0, 6)}…{session.address.slice(-4)}</span>
-        </h1>
-        <p className="max-w-xl text-muted-foreground">
-          Your trading console is coming in the next release: connect a Hyperliquid agent key,
-          pick a strategy, and watch your positions trade themselves — non-custodial, revocable anytime.
-        </p>
-        <div className="rounded-xl border border-dashed border-border-strong p-6 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Next up (3b):</span> one-signature agent onboarding,
-          strategy menu, live P&amp;L.
-        </div>
-        <Link href="/">
-          <Button variant="outline">Back to home</Button>
-        </Link>
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+        <UserConsole address={session.address} role={session.role} />
       </main>
     </div>
   );
