@@ -16,6 +16,9 @@ const API_ORIGIN = process.env.API_ORIGIN ?? "http://127.0.0.1:8890";
 const nextConfig: NextConfig = {
   basePath: BASE || undefined,
   assetPrefix: BASE || undefined,
+  // Publish the computed base to client bundles so auth/api callers agree with
+  // the server's basePath on every deploy target (gateway /platform, Vercel root).
+  env: { NEXT_PUBLIC_BASE_PATH: BASE },
   async rewrites() {
     // Same-origin API: browser calls <base>/api/* -> brain API (no CORS ever).
     // (Rewrite sources are auto-prefixed with basePath.)

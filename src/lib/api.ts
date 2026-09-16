@@ -1,12 +1,14 @@
-/** API base for the brain API (apps/api).
- *  Follows the deploy: same-origin by default ("" on Vercel root domains,
- *  "/platform" behind the gateway subpath) — the browser only ever talks to
- *  one origin; Next rewrites /api/* to the brain API (no CORS, works from
- *  remote browsers). Override with NEXT_PUBLIC_API_URL for direct local dev
- *  (e.g. http://127.0.0.1:8890). */
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.VERCEL ? "" : "/platform");
+/** Same-origin app base — published by next.config (env) from the computed
+ *  deploy basePath, so client and server always agree on every target. */
+export const APP_BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "/platform";
+
+/** Brain API base (apps/api): same-origin through the rewrites by default.
+ *  NEXT_PUBLIC_API_URL overrides for direct local dev — but auth is NEVER
+ *  affected by it (see AUTH_URL): auth routes live in THIS app. */
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? APP_BASE;
+
+/** Auth routes always resolve same-origin — immune to NEXT_PUBLIC_API_URL. */
+export const AUTH_URL = APP_BASE;
 
 const TOKEN_KEY = "shortfin.desk.token";
 

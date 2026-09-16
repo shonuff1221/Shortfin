@@ -5,12 +5,12 @@ import { WagmiProvider, useAccount, useConnect, type Connector } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { wagmiConfig } from "@/lib/wagmi";
-import { API_URL } from "@/lib/api";
+import { AUTH_URL } from "@/lib/api";
 
 type Me = { address: string; role: "admin" | "user" } | null;
 
 async function api(path: string, init?: RequestInit) {
-  const res = await fetch(`${API_URL}${path}`, { credentials: "include", ...init });
+  const res = await fetch(`${AUTH_URL}${path}`, { credentials: "include", ...init });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
   return body;
@@ -57,7 +57,7 @@ function ConnectFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: lower, message, signature, nonce }),
       });
-      window.location.assign(verified.role === "admin" ? `${API_URL}/desk` : `${API_URL}/u`);
+      window.location.assign(verified.role === "admin" ? `${AUTH_URL}/desk` : `${AUTH_URL}/u`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
       setBusy(false);
@@ -66,7 +66,7 @@ function ConnectFlow() {
 
   async function signOut() {
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
-    window.location.assign(`${API_URL}/`);
+    window.location.assign(`${AUTH_URL}/`);
   }
 
   if (me) {
