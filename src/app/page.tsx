@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FinMark } from "@/components/brand-mark";
 import { WaitlistForm } from "@/components/waitlist-form";
+import WalletButton from "@/components/wallet-button";
 
 /* ── Inline SVG icon set (stroke style, no emoji) ───────────────────── */
 
@@ -181,6 +182,7 @@ export default function LandingPage() {
             <Link href="/desk" className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">
               Live desk
             </Link>
+            <WalletButton />
             <a
               href="#waitlist"
               className="inline-flex h-8 cursor-pointer items-center rounded-md border border-border-strong px-3 text-xs font-medium transition-colors duration-200 hover:border-brand/50 hover:bg-raised"
