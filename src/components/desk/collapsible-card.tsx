@@ -29,6 +29,7 @@ export function CollapsibleCard({
   children,
   defaultOpen = true,
   className,
+  contentClassName,
 }: {
   /** stable id for the persisted state key */
   id: string;
@@ -38,6 +39,7 @@ export function CollapsibleCard({
   children: ReactNode;
   defaultOpen?: boolean;
   className?: string;
+  contentClassName?: string;
 }) {
   // This component only mounts client-side (desk panels render after the
   // auth gate flips post-mount), so a lazy initializer can read localStorage
@@ -94,7 +96,7 @@ export function CollapsibleCard({
       </div>
       <div id={regionId} className="collapse-track" data-collapsed={!open}>
         <div className="collapse-inner">
-          <CardContent className="p-4 pt-2 sm:p-5 sm:pt-2">{children}</CardContent>
+          <CardContent className={cn("p-4 pt-2 sm:p-5 sm:pt-2", contentClassName)}>{children}</CardContent>
         </div>
       </div>
     </Card>

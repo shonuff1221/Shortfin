@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/desk/collapsible-card";
 import {
   fetcher,
   runAction,
@@ -180,12 +180,12 @@ export function OperatePanel() {
     JSON.stringify([...picked].sort()) !== JSON.stringify([...lineupMarkets].sort());
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Operate</CardTitle>
-        <Badge tone="warn">write</Badge>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <CollapsibleCard
+      id="operate"
+      title="Operate"
+      meta={<Badge tone="warn">write</Badge>}
+      contentClassName="space-y-4"
+    >
         {/* current lineup */}
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wider text-subtle-foreground">
@@ -406,7 +406,6 @@ export function OperatePanel() {
           Invokes the operator tooling only (lineup.py · FREEZE/SPACING files · remediate.py). Every
           action is audited to Postgres + the ops journal. Max 1 action / 10s.
         </p>
-      </CardContent>
-    </Card>
+    </CollapsibleCard>
   );
 }
