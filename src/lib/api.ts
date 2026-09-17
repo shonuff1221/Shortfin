@@ -159,6 +159,7 @@ export interface Rotations {
   ts: number;
 }
 
+
 export interface LabMarket {
   drift24h: number | null;
   range24h: number | null;

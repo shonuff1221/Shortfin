@@ -30,7 +30,7 @@ const STATUS_META: Record<FleetStatus, { dot: string; label: string; title: stri
 };
 
 /** One ticker chip: market + deployed x/y + status color dot. */
-function FleetChip({ card }: { card: GridCardData }) {
+function FleetChip({ card, idx }: { card: GridCardData; idx: number }) {
   const placed = card.deployed?.placed ?? card.placed_buy_rungs;
   const depth = card.deployed?.depth ?? card.ladder_depth;
   const status = fleetStatus(placed, card.cap_backoff ?? false, card.last_activity ?? null);
@@ -44,7 +44,8 @@ function FleetChip({ card }: { card: GridCardData }) {
   return (
     <div
       role="listitem"
-      className={`flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1.5 ${ring}`}
+      className={`anim-in flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1.5 ${ring}`}
+      style={{ ["--d" as string]: `${idx * 70}ms` }}
       title={`${card.market} — ${meta.title}`}
     >
       <span
@@ -104,8 +105,8 @@ export function FleetStrip({
             {cards.length === 0 && (
               <span className="text-xs text-muted-foreground">Loading lineup…</span>
             )}
-            {cards.map((c) => (
-              <FleetChip key={c.market} card={c} />
+            {cards.map((c, i) => (
+              <FleetChip key={c.market} card={c} idx={i} />
             ))}
           </div>
         </div>

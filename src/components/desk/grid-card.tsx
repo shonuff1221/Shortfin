@@ -78,13 +78,14 @@ function Ladder({ card }: { card: GridCardData }) {
         {cells.map((state, i) => (
           <div
             key={i}
-            className={`h-9 flex-1 rounded-sm transition-colors duration-300 ${
+            className={`anim-in h-9 flex-1 rounded-sm transition-colors duration-500 hover:opacity-80 ${
               state === "held"
                 ? "bg-up/70"
                 : state === "selling"
                   ? "bg-warn/50"
                   : "bg-muted"
             }`}
+            style={{ ["--d" as string]: `${i * 35}ms` }}
           />
         ))}
       </div>
@@ -112,7 +113,7 @@ export function GridCard({ card, positionSzi }: { card: GridCardData; positionSz
   const pos = posData?.szi ?? positionSzi ?? null; // card venue read wins; legacy prop is fallback
 
   return (
-    <Card>
+    <Card className="card-hover">
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
           <CardTitle className="font-mono text-base">{card.market}</CardTitle>
