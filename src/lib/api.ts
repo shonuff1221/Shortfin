@@ -95,6 +95,16 @@ export interface Positions {
   volume_24h: number;
 }
 
+export interface GridPosition {
+  szi: number;
+  entry_px: string | null;
+  u_pnl: number;
+  position_value: number;
+  /** true = venue read failed; this is the last successfully-fetched position */
+  stale?: boolean;
+  stale_age_s?: number;
+}
+
 export interface GridCard {
   market: string;
   dex: string;
@@ -109,6 +119,14 @@ export interface GridCard {
   };
   placed_buy_rungs: number;
   ladder_depth: number;
+  /** Fleet liveness: true buys placed / ladder depth (from state file) */
+  deployed?: { placed: number; depth: number };
+  /** grid runner log shows "CAP backoff" within the last 10 min */
+  cap_backoff?: boolean;
+  /** unix ts (s) of the last "FILL " line in the grid log tail, null if none */
+  last_activity?: number | null;
+  /** venue position with last-good fallback; null = no read ever succeeded */
+  position?: GridPosition | null;
   resting_buys: number[];
   resting_sells: number[];
   /** Active rung-spacing override (bps) from data/lab/SPACING_* — null = session auto */
@@ -125,6 +143,20 @@ export interface GridCard {
 export interface Grids {
   markets: GridCard[];
   lineup: { markets: string[]; updated: number; reason?: string } | null;
+  lineup_reason?: string | null;
+  lineup_updated?: number | null;
+}
+
+export interface RotationEvent {
+  /** unix ts (s) of the "registry →" line */
+  ts: number;
+  markets: string[];
+  reason: string;
+}
+
+export interface Rotations {
+  events: RotationEvent[];
+  ts: number;
 }
 
 export interface LabMarket {
@@ -296,6 +328,19 @@ export const fmtTime = (ms: number | null | undefined) =>
   ms == null
     ? "—"
     : new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+/** Relative time for API unix-SECOND timestamps ("just now", "4m ago", "3h ago"). */
+export const fmtAgo = (tsSec: number | null | undefined, nowMs: number = Date.now()): string => {
+  if (tsSec == null) return "—";
+  const s = Math.max(0, Math.round(nowMs / 1000 - tsSec));
+  if (s < 10) return "just now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+};
 
 export const pnlClass = (n: number | null | undefined) =>
   n == null ? "text-muted-foreground" : n > 0 ? "text-up" : n < 0 ? "text-down" : "text-muted-foreground";

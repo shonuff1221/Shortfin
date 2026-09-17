@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { BRAND } from "@/lib/brand";
-import { clearToken, fetcher, getToken, type Grids, type Lab, type Positions, type Pulse, type Summary } from "@/lib/api";
+import { clearToken, fetcher, getToken, type Grids, type Lab, type Positions, type Pulse, type Rotations, type Summary } from "@/lib/api";
 import { FinMark } from "@/components/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { TokenGate } from "@/components/desk/token-gate";
 import { KpiRow } from "@/components/desk/kpi-row";
 import { PositionsPanel } from "@/components/desk/positions-panel";
 import { GridCard } from "@/components/desk/grid-card";
+import { FleetStrip } from "@/components/desk/fleet-strip";
 import { FillsPanel } from "@/components/desk/fills-panel";
 import { LabPanel } from "@/components/desk/lab-panel";
 import { PulsesPanel } from "@/components/desk/pulses-panel";
@@ -30,15 +31,19 @@ function useDeskData(active: boolean) {
   const summary = useSWR<Summary>(active ? "/api/summary" : null, fetcher, cfg);
   const positions = useSWR<Positions>(active ? "/api/positions" : null, fetcher, cfg);
   const grids = useSWR<Grids>(active ? "/api/grids" : null, fetcher, cfg);
+  const rotations = useSWR<Rotations>(active ? "/api/rotations" : null, fetcher, {
+    ...cfg,
+    refreshInterval: 60_000, // rotations are rare — poll gently
+  });
   const lab = useSWR<Lab>(active ? "/api/lab" : null, fetcher, cfg);
   const pulses = useSWR<{ entries: Pulse[] }>(active ? "/api/pulses" : null, fetcher, cfg);
-  return { summary, positions, grids, lab, pulses };
+  return { summary, positions, grids, rotations, lab, pulses };
 }
 
 export default function DeskPage() {
   // auth state: "checking" -> "gate" | "in"
   const [auth, setAuth] = useState<"checking" | "gate" | "in">("checking");
-  const { summary, positions, grids, lab, pulses } = useDeskData(auth === "in");
+  const { summary, positions, grids, rotations, lab, pulses } = useDeskData(auth === "in");
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +124,8 @@ export default function DeskPage() {
         />
 
         <OperatePanel />
+
+        <FleetStrip grids={grids.data} rotations={rotations.data?.events} />
 
         <section aria-label="Grids" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {(grids.data?.markets ?? []).map((card) => (

@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { fmtNum, pnlClass, type GridCard as GridCardData } from "@/lib/api";
+import { fmtAgo, fmtNum, pnlClass, type GridCard as GridCardData } from "@/lib/api";
+import { fleetStatus } from "@/components/desk/fleet-strip";
 
 function DirectionBadge({ dir }: { dir: string }) {
   const tone = dir === "long" ? "up" : dir === "short" ? "down" : "neutral";
@@ -11,6 +12,47 @@ function DirectionBadge({ dir }: { dir: string }) {
   return (
     <Badge tone={tone}>
       <span aria-hidden>{arrow}</span> {dir}
+    </Badge>
+  );
+}
+
+/** Fleet status chip: CAP-HOLDING (amber) > DEPLOYED x/y (cyan) > WARMING UP. */
+function StatusChip({
+  placed,
+  depth,
+  capBackoff,
+  lastActivity,
+}: {
+  placed: number;
+  depth: number;
+  capBackoff: boolean;
+  lastActivity: number | null;
+}) {
+  const status = fleetStatus(placed, capBackoff, lastActivity);
+  if (status === "cap") {
+    return (
+      <Badge tone="warn" title="buys paused by request-cap backoff">
+        CAP-HOLDING
+      </Badge>
+    );
+  }
+  if (status === "deployed") {
+    return (
+      <Badge tone="info" title={`${placed} of ${depth} buy rungs resting on venue`}>
+        DEPLOYED {placed}/{depth}
+      </Badge>
+    );
+  }
+  if (status === "warming") {
+    return (
+      <Badge tone="neutral" title="no buys placed yet — grid still warming up">
+        WARMING UP
+      </Badge>
+    );
+  }
+  return (
+    <Badge tone="neutral" title="ladder cycled flat — no resting buys">
+      DEPLOYED 0/{depth}
     </Badge>
   );
 }
@@ -62,22 +104,38 @@ export function GridCard({ card, positionSzi }: { card: GridCardData; positionSz
   const s = card.state ?? {};
   const realized = s.realized_bps ?? null;
   const rts = s.fills_sell ?? 0;
-  const pos = positionSzi ?? null;
+  const placed = card.deployed?.placed ?? card.placed_buy_rungs;
+  const depth = card.deployed?.depth ?? card.ladder_depth;
+  const capBackoff = card.cap_backoff ?? false;
+  const lastActivity = card.last_activity ?? null;
+  const posData = card.position ?? null;
+  const pos = posData?.szi ?? positionSzi ?? null; // card venue read wins; legacy prop is fallback
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <CardTitle className="font-mono text-base">{card.market}</CardTitle>
           <DirectionBadge dir={card.direction.dir} />
+          <StatusChip
+            placed={placed}
+            depth={depth}
+            capBackoff={capBackoff}
+            lastActivity={lastActivity}
+          />
         </div>
-        <div className="flex items-center gap-3 font-mono text-xs">
+        <div className="flex flex-wrap items-center gap-3 font-mono text-xs">
           <span className={pnlClass(realized == null ? null : realized / 100)}>
             {realized == null ? "—" : `${realized > 0 ? "+" : ""}${realized.toFixed(1)} bp`}
           </span>
           <span className="text-subtle-foreground">
             {rts} RT{rts === 1 ? "" : "s"}
           </span>
+          {lastActivity != null && (
+            <span className="text-subtle-foreground" title={new Date(lastActivity * 1000).toISOString()}>
+              last fill {fmtAgo(lastActivity)}
+            </span>
+          )}
           {card.spacing_override != null && (
             <Badge tone="warn" className="font-mono" title="operator spacing override (desk)">
               {card.spacing_override}bp
@@ -94,7 +152,25 @@ export function GridCard({ card, positionSzi }: { card: GridCardData; positionSz
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wider text-subtle-foreground">Position</div>
-            <div className="mt-0.5">{pos == null ? "—" : fmtNum(pos, 3)}</div>
+            <div
+              className="mt-0.5"
+              title={
+                posData?.stale
+                  ? `stale — venue read failed, showing last-good position (${Math.round(posData.stale_age_s ?? 0)}s old)`
+                  : undefined
+              }
+            >
+              {pos == null ? (
+                <span className="text-subtle-foreground">flat (venue read pending)</span>
+              ) : pos === 0 ? (
+                <span className="text-muted-foreground">flat</span>
+              ) : (
+                <span className={posData?.stale ? "text-muted-foreground" : undefined}>
+                  {fmtNum(pos, 3)}
+                  {posData?.stale ? " ·stale" : ""}
+                </span>
+              )}
+            </div>
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wider text-subtle-foreground">Worst pot</div>
