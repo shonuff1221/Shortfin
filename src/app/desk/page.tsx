@@ -13,6 +13,7 @@ import { KpiRow } from "@/components/desk/kpi-row";
 import { PositionsPanel } from "@/components/desk/positions-panel";
 import { GridCard } from "@/components/desk/grid-card";
 import { FleetStrip } from "@/components/desk/fleet-strip";
+import { VolumeCard } from "@/components/desk/volume-card";
 import { FillsPanel } from "@/components/desk/fills-panel";
 import { LabPanel } from "@/components/desk/lab-panel";
 import { PulsesPanel } from "@/components/desk/pulses-panel";
@@ -116,7 +117,7 @@ export default function DeskPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-4 p-4 sm:space-y-6 sm:p-6">
+      <main className="desk-glow mx-auto max-w-7xl space-y-4 p-4 sm:space-y-6 sm:p-6">
         <KpiRow
           summary={summary.data}
           positions={positions.data}
@@ -137,6 +138,8 @@ export default function DeskPage() {
         </section>
 
         <HistoryPanel />
+
+        <VolumeCard />
 
         <div className="grid gap-4 lg:grid-cols-5">
           <div className="lg:col-span-3">

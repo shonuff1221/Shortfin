@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/desk/collapsible-card";
 import { Badge } from "@/components/ui/badge";
 import { fmtNum, fmtPnl, fmtUsd, pnlClass, type Positions } from "@/lib/api";
 
@@ -9,16 +9,17 @@ export function PositionsPanel({ data }: { data?: Positions }) {
   const rows = data?.positions ?? [];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Positions</CardTitle>
-        {data && (
+    <CollapsibleCard
+      id="positions"
+      title="Positions"
+      meta={
+        data ? (
           <span className="font-mono text-xs text-muted-foreground">
             {fmtUsd(data.usdc)} USDC free · {fmtUsd(data.allocated_margin)} allocated
           </span>
-        )}
-      </CardHeader>
-      <CardContent>
+        ) : null
+      }
+    >
         {rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             {data ? "Flat — no open positions." : "Loading…"}
@@ -78,7 +79,6 @@ export function PositionsPanel({ data }: { data?: Positions }) {
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+    </CollapsibleCard>
   );
 }

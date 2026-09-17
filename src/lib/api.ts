@@ -159,6 +159,18 @@ export interface Rotations {
   ts: number;
 }
 
+export interface VolumeWindow {
+  volume: number;
+  fills: number;
+  rts: number;
+}
+
+export interface VolumeData {
+  windows: Partial<Record<"24h" | "7d" | "30d", VolumeWindow>>;
+  by_day: { day: string; volume: number; fills: number }[];
+  coverage_from: string | null;
+  ts: number;
+}
 
 export interface LabMarket {
   drift24h: number | null;

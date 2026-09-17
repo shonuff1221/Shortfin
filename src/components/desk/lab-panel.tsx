@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/desk/collapsible-card";
 import { Badge } from "@/components/ui/badge";
 import { fmtNum, pnlClass, type Lab } from "@/lib/api";
 
@@ -13,16 +13,17 @@ export function LabPanel({ data }: { data?: Lab }) {
   const date = data ? new Date(data.ts * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—";
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Daily lab — {date}</CardTitle>
-        {data && (
+    <CollapsibleCard
+      id="lab"
+      title={`Daily lab — ${date}`}
+      meta={
+        data ? (
           <Badge tone={data.correlated_dump ? "down" : "up"}>
             {data.correlated_dump ? "correlated dump ⚠" : "no dumps"}
           </Badge>
-        )}
-      </CardHeader>
-      <CardContent>
+        ) : null
+      }
+    >
         {!data ? (
           <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
         ) : ranked.length === 0 ? (
@@ -49,7 +50,6 @@ export function LabPanel({ data }: { data?: Lab }) {
             ))}
           </ul>
         )}
-      </CardContent>
-    </Card>
+    </CollapsibleCard>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/desk/collapsible-card";
 import { fmtPnl, fmtTime, fmtUsd, pnlClass, type Fill } from "@/lib/api";
 
 function sideTone(fill: Fill) {
@@ -17,12 +17,11 @@ export function FillsPanel({ fills }: { fills?: Fill[] }) {
   const rows = (fills ?? []).slice(0, 12);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent fills</CardTitle>
-        <span className="text-xs text-subtle-foreground">venue truth</span>
-      </CardHeader>
-      <CardContent>
+    <CollapsibleCard
+      id="fills"
+      title="Recent fills"
+      meta={<span className="text-xs text-subtle-foreground">venue truth</span>}
+    >
         {rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             {fills ? "No recent fills." : "Loading…"}
@@ -55,7 +54,6 @@ export function FillsPanel({ fills }: { fills?: Fill[] }) {
             ))}
           </ul>
         )}
-      </CardContent>
-    </Card>
+    </CollapsibleCard>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/desk/collapsible-card";
 import type { Pulse } from "@/lib/api";
 
 /** Manager pulse feed — last journal entries, newest last (journal order). */
@@ -8,12 +8,11 @@ export function PulsesPanel({ entries }: { entries?: Pulse[] }) {
   const rows = [...(entries ?? [])].reverse(); // newest first for display
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Manager pulses</CardTitle>
-        <span className="text-xs text-subtle-foreground">journal</span>
-      </CardHeader>
-      <CardContent>
+    <CollapsibleCard
+      id="pulses"
+      title="Manager pulses"
+      meta={<span className="text-xs text-subtle-foreground">journal</span>}
+    >
         {rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
         ) : (
@@ -35,7 +34,6 @@ export function PulsesPanel({ entries }: { entries?: Pulse[] }) {
             ))}
           </ol>
         )}
-      </CardContent>
-    </Card>
+    </CollapsibleCard>
   );
 }

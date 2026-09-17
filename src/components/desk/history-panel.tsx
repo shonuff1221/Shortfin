@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/desk/collapsible-card";
 import { fetcher, fmtNum, fmtPnl, fmtUsd, pnlClass } from "@/lib/api";
 
 interface EquityPoint {
@@ -129,37 +129,35 @@ export function HistoryPanel() {
   return (
     <div className="grid gap-4 lg:grid-cols-5">
       <div className="lg:col-span-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Equity — 24h</CardTitle>
-            {latest && (
+        <CollapsibleCard
+          id="history-equity"
+          title="Equity — 24h"
+          meta={
+            latest ? (
               <span className="font-mono text-xs text-muted-foreground">
                 now {fmtUsd(latest.equity)} · free {fmtUsd(latest.usdc)}
               </span>
-            )}
-          </CardHeader>
-          <CardContent>
-            <Sparkline points={equity.data?.points ?? []} />
-          </CardContent>
-        </Card>
+            ) : null
+          }
+        >
+          <Sparkline points={equity.data?.points ?? []} />
+        </CollapsibleCard>
       </div>
       <div className="lg:col-span-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Realized / day</CardTitle>
-            <span className="text-xs text-subtle-foreground">venue fills ledger</span>
-          </CardHeader>
-          <CardContent>
-            <DailyBars days={daily.data?.days ?? []} />
-            <div className="mt-2 font-mono text-[10px] text-subtle-foreground">
-              {daily.data
-                ? `${fmtNum(daily.data.days.reduce((a, d) => a + d.fills, 0))} fills · ${fmtNum(
-                    daily.data.days.reduce((a, d) => a + d.rts, 0),
-                  )} RTs in window`
-                : "…"}
-            </div>
-          </CardContent>
-        </Card>
+        <CollapsibleCard
+          id="history-pnl"
+          title="Realized / day"
+          meta={<span className="text-xs text-subtle-foreground">venue fills ledger</span>}
+        >
+          <DailyBars days={daily.data?.days ?? []} />
+          <div className="mt-2 font-mono text-[10px] text-subtle-foreground">
+            {daily.data
+              ? `${fmtNum(daily.data.days.reduce((a, d) => a + d.fills, 0))} fills · ${fmtNum(
+                  daily.data.days.reduce((a, d) => a + d.rts, 0),
+                )} RTs in window`
+              : "…"}
+          </div>
+        </CollapsibleCard>
       </div>
     </div>
   );

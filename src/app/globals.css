@@ -84,7 +84,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -99,4 +101,81 @@ body {
 
 .glow-brand {
   text-shadow: 0 0 24px var(--brand-soft);
+}
+
+/* ── Motion layer (desk modernization) ───────────────────────────────
+   All effects are subtle + short (150–400ms); reduced-motion kills them
+   via the global guard above. */
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes value-flash {
+  0% { color: var(--brand-strong); text-shadow: 0 0 14px var(--brand-soft); }
+  /* 100% leaves color undeclared -> interpolates back to the element's own color */
+  100% { text-shadow: none; }
+}
+
+@keyframes shimmer-slide {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* staggered entrance — set `--d: <ms>` inline per item */
+.anim-in {
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* brief brand-tinted flash when a live value changes */
+.anim-flash {
+  animation: value-flash 0.8s ease-out both;
+}
+
+/* skeleton shimmer sweep */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.12), transparent);
+  animation: shimmer-slide 1.6s ease-in-out infinite;
+}
+
+/* Smooth height collapse — grid-rows trick (no JS measurement) */
+.collapse-track {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.collapse-track[data-collapsed="true"] {
+  grid-template-rows: 0fr;
+}
+.collapse-track > .collapse-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Card hover lift + brand edge (pointer devices only) */
+@media (hover: hover) and (pointer: fine) {
+  .card-hover {
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--brand) 35%, var(--line));
+    box-shadow: 0 6px 24px -12px rgba(34, 211, 167, 0.25);
+  }
+}
+
+/* Desk top glow — soft brand halo anchoring the page */
+.desk-glow {
+  background:
+    radial-gradient(60% 240px at 50% 0%, rgba(34, 211, 167, 0.07), transparent 70%);
 }

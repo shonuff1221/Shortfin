@@ -13,8 +13,9 @@ interface Kpi {
   chip?: { text: string; tone: "up" | "warn" };
 }
 
-/** KPI row — 2-col grid on mobile, 5-up on desktop. Venue numbers when live,
- *  ops-log numbers as fallback. */
+/** KPI row — 2-col grid on mobile, 6-up on desktop. Venue numbers when live,
+ *  ops-log numbers as fallback. Values flash briefly when they change
+ *  (key-remount replays the CSS animation — no state, no layout shift). */
 export function KpiRow({
   summary,
   positions,
@@ -26,8 +27,8 @@ export function KpiRow({
 }) {
   if (loading && !summary && !positions) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-[76px]" />
         ))}
       </div>
@@ -39,6 +40,7 @@ export function KpiRow({
   const rts = positions?.rts_24h ?? summary?.rts_24h;
   const equity = positions?.account_value ?? summary?.equity;
   const fees = positions?.fees_24h ?? summary?.fees_24h;
+  const volume = positions?.volume_24h ?? summary?.volume_24h;
 
   // equity provenance: venue live (cached ≤60s) vs hourly ops-log fallback
   const liveEquity = (summary?.equity_source ?? "").startsWith("venue");
@@ -50,6 +52,7 @@ export function KpiRow({
       chip: { text: liveEquity ? "live" : "ops-log", tone: liveEquity ? "up" : "warn" },
     },
     { label: "Realized 24h", value: fmtPnl(realized), className: pnlClass(realized) },
+    { label: "Volume 24h", value: fmtUsd(volume, 0) },
     { label: "Fills 24h", value: fmtNum(fills) },
     { label: "Round trips", value: fmtNum(rts) },
     { label: "Fees 24h", value: fmtUsd(fees, 4) },
@@ -65,14 +68,17 @@ export function KpiRow({
           </span>
         </div>
       )}
-      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         {kpis.map((kpi) => (
-          <Card key={kpi.label}>
+          <Card key={kpi.label} className="card-hover">
             <CardContent className="p-3 sm:p-4">
               <dt className="text-[10px] font-medium uppercase tracking-wider text-subtle-foreground sm:text-xs">
                 {kpi.label}
               </dt>
-              <dd className={`mt-1 font-mono text-base font-semibold sm:text-xl ${kpi.className ?? ""}`}>
+              <dd
+                key={kpi.value}
+                className={`anim-flash mt-1 font-mono text-base font-semibold tabular-nums sm:text-xl ${kpi.className ?? ""}`}
+              >
                 {kpi.value}
               </dd>
               {kpi.chip && (
