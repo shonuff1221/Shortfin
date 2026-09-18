@@ -19,6 +19,7 @@ import { LabPanel } from "@/components/desk/lab-panel";
 import { PulsesPanel } from "@/components/desk/pulses-panel";
 import { HistoryPanel } from "@/components/desk/history-panel";
 import { OperatePanel } from "@/components/desk/operate-panel";
+import { RunnersPanel } from "@/components/desk/runners-panel";
 
 const POLL_MS = 30_000;
 
@@ -125,6 +126,8 @@ export default function DeskPage() {
         />
 
         <OperatePanel />
+
+        <RunnersPanel />
 
         <FleetStrip grids={grids.data} rotations={rotations.data?.events} />
 

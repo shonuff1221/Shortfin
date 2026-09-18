@@ -283,6 +283,8 @@ export interface UserProfile {
     strategy: string | null;
     agent_address: string | null;
     agent_status: string | null;
+    active: boolean;
+    runner_status: string | null;
     created_at: string;
     updated_at: string;
   };
@@ -301,8 +303,48 @@ export interface UserAccountData {
   realized_24h: number;
   fees_24h: number;
   fills_recent: Fill[];
+  runner?: RunnerInfo | null;
   venue_ttl_s: number;
   ts: number;
+}
+
+/* ── per-user grid runner (Lane 3c) ────────────────────────────── */
+
+export type RunnerStatus = "running" | "pending" | "stopped" | "killed";
+
+export interface RunnerInfo {
+  status: RunnerStatus;
+  market: string | null;
+  direction: string | null;
+  deployed?: { placed: number; depth: number } | null;
+  realized_bps?: number | null;
+  spacing_bps?: number | null;
+  units_held?: number | null;
+  exposure_usd?: number | null;
+  last_err?: string | null;
+  updated?: number | null;
+  age_s?: number | null;
+}
+
+export interface AdminRunnerRow {
+  address: string;
+  role: string;
+  tier: string;
+  strategy: string | null;
+  agent_address: string | null;
+  agent_status: string | null;
+  active: boolean;
+  runner_status: string | null;
+  updated_at: string;
+  runner: RunnerInfo | null;
+}
+
+export function activateRunner(active: boolean) {
+  return poster<{ ok: boolean; active: boolean }>("/api/user/activate", { active });
+}
+
+export function fetchAdminRunners() {
+  return fetcher<{ runners: AdminRunnerRow[]; ts: number }>("/api/admin/runners");
 }
 
 export function saveUserStrategy(strategy: string) {

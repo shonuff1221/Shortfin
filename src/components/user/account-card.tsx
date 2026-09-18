@@ -10,6 +10,7 @@ import {
   fmtPnl,
   fmtUsd,
   pnlClass,
+  type RunnerInfo,
   type UserAccountData,
 } from "@/lib/api";
 
@@ -21,6 +22,56 @@ function WalletIcon() {
       <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
       <path d="M16 12h2" />
     </svg>
+  );
+}
+
+/** Live runner status line — market + direction, deployed rungs x/10,
+ *  realized bps since the runner started, kill-switch warning. */
+function RunnerLine({ r }: { r: RunnerInfo }) {
+  if (r.status === "stopped" && !r.market) return null;
+  const deployed = r.deployed ?? { placed: 0, depth: 10 };
+  return (
+    <div
+      className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border p-3 text-xs ${
+        r.status === "killed"
+          ? "border-down/40 bg-down-soft/60"
+          : r.status === "running"
+            ? "border-up/30 bg-up-soft/40"
+            : "border-border bg-raised/50"
+      }`}
+      aria-label="Grid runner status"
+    >
+      {r.status === "killed" ? (
+        <Badge tone="down">runner killed</Badge>
+      ) : r.status === "running" ? (
+        <Badge tone="up">
+          <span className="size-1.5 rounded-full bg-up animate-pulse" aria-hidden />
+          runner live
+        </Badge>
+      ) : r.status === "pending" ? (
+        <Badge tone="warn">runner starting…</Badge>
+      ) : (
+        <Badge tone="neutral">runner stopped</Badge>
+      )}
+      {r.market && (
+        <span className="font-mono font-medium">
+          {r.market}
+          {r.direction ? ` · ${r.direction}` : ""}
+        </span>
+      )}
+      <span className="text-subtle-foreground">
+        deployed {deployed.placed}/{deployed.depth}
+      </span>
+      {typeof r.realized_bps === "number" && (
+        <span className={r.realized_bps > 0 ? "font-mono text-up" : r.realized_bps < 0 ? "font-mono text-down" : "font-mono"}>
+          {r.realized_bps > 0 ? "+" : ""}
+          {r.realized_bps.toFixed(1)}bp
+        </span>
+      )}
+      {r.status === "killed" && (
+        <span className="text-down">kill-switch flattened the book — re-arm on the Go-live card</span>
+      )}
+    </div>
   );
 }
 
@@ -64,6 +115,8 @@ export function AccountCard() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {data?.runner && <RunnerLine r={data.runner} />}
+
         <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-busy={isLoading}>
           {kpis.map((kpi) => (
             <div key={kpi.label} className="rounded-lg border border-border bg-raised/50 p-3">

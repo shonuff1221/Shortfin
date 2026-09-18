@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetcher, fmtAddress, type UserProfile } from "@/lib/api";
 import { AgentCard } from "@/components/user/agent-card";
 import { AccountCard } from "@/components/user/account-card";
+import { GoLiveCard } from "@/components/user/go-live-card";
 import { StrategyMenu } from "@/components/user/strategy-menu";
 
 function FeeIcon() {
@@ -75,6 +76,8 @@ export function UserConsole({ address, role }: { address: string; role: string }
         vaultReady={data?.vault_ready ?? true}
         onProvisioned={() => mutate()}
       />
+
+      <GoLiveCard user={user} onChanged={() => mutate()} />
 
       <AccountCard />
 
