@@ -146,7 +146,7 @@ export default function DeskPage() {
 
         <div className="grid gap-4 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <PositionsPanel data={positions.data} />
+            <PositionsPanel data={positions.data} lineup={grids.data?.lineup?.markets} />
           </div>
           <div className="lg:col-span-2">
             <FillsPanel fills={positions.data?.fills_recent} />

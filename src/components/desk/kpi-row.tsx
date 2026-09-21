@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -58,14 +59,28 @@ export function KpiRow({
     { label: "Fees 24h", value: fmtUsd(fees, 4) },
   ];
 
+  const [opsDismissed, setOpsDismissed] = useState(false);
   return (
     <div aria-busy={loading}>
-      {summary && summary.issues.length > 0 && (
+      {summary && summary.issues.length > 0 && !opsDismissed && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-warn/40 bg-warn-soft px-3 py-2">
           <Badge tone="warn">ops</Badge>
           <span className="text-xs text-warn">
             {summary.issues.join(" · ")}
           </span>
+          {summary.age_s != null && summary.age_s > 120 && (
+            <span className="text-[10px] text-subtle-foreground">
+              ({Math.round(summary.age_s / 60)}m ago)
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpsDismissed(true)}
+            className="ml-auto rounded px-1.5 text-xs text-warn transition-colors hover:bg-warn/10"
+            aria-label="Dismiss ops banner"
+          >
+            ✕
+          </button>
         </div>
       )}
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-6">

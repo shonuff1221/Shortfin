@@ -4,9 +4,12 @@ import { CollapsibleCard } from "@/components/desk/collapsible-card";
 import { Badge } from "@/components/ui/badge";
 import { fmtNum, fmtPnl, fmtUsd, pnlClass, type Positions } from "@/lib/api";
 
-/** Venue-truth positions: table on md+, compact rows on mobile. */
-export function PositionsPanel({ data }: { data?: Positions }) {
+/** Venue-truth positions: table on md+, compact rows on mobile.
+ *  Positions in markets outside the live lineup are labeled "winding down"
+ *  (rotated-out residuals closing naturally). */
+export function PositionsPanel({ data, lineup }: { data?: Positions; lineup?: string[] }) {
   const rows = data?.positions ?? [];
+  const windingDown = (coin: string) => lineup != null && lineup.length > 0 && !lineup.includes(coin);
 
   return (
     <CollapsibleCard
@@ -31,7 +34,10 @@ export function PositionsPanel({ data }: { data?: Positions }) {
               {rows.map((p) => (
                 <li key={`${p.dex}-${p.coin}`} className="flex items-center justify-between py-3">
                   <div>
-                    <div className="font-mono text-sm font-medium">{p.coin}</div>
+                    <div className="font-mono text-sm font-medium">
+                      {p.coin}{" "}
+                      {windingDown(p.coin) && <span className="ml-1 rounded border border-border px-1 py-px text-[9px] font-normal uppercase tracking-wide text-subtle-foreground">winding down</span>}
+                    </div>
                     <div className="mt-0.5 text-xs text-subtle-foreground">
                       {fmtNum(Math.abs(p.szi), 3)} @ {p.entry_px ?? "—"}
                     </div>
@@ -59,7 +65,10 @@ export function PositionsPanel({ data }: { data?: Positions }) {
                 <tbody className="font-mono">
                   {rows.map((p) => (
                     <tr key={`${p.dex}-${p.coin}`} className="border-b border-border/50 last:border-0">
-                      <td className="py-2.5 pr-4 font-medium">{p.coin}</td>
+                      <td className="py-2.5 pr-4 font-medium">
+                        {p.coin}{" "}
+                        {windingDown(p.coin) && <span className="ml-1 rounded border border-border px-1 py-px text-[9px] font-normal uppercase tracking-wide text-subtle-foreground">winding down</span>}
+                      </td>
                       <td className="py-2.5 pr-4 text-muted-foreground">{p.dex}</td>
                       <td className="py-2.5 pr-4 text-right">{fmtNum(p.szi, 3)}</td>
                       <td className="py-2.5 pr-4 text-right">{p.entry_px ?? "—"}</td>
