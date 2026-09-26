@@ -285,6 +285,7 @@ export interface UserProfile {
     agent_status: string | null;
     active: boolean;
     runner_status: string | null;
+    status?: string; // 3d access gate: pending | approved | denied | banned
     created_at: string;
     updated_at: string;
   };
@@ -345,6 +346,68 @@ export function activateRunner(active: boolean) {
 
 export function fetchAdminRunners() {
   return fetcher<{ runners: AdminRunnerRow[]; ts: number }>("/api/admin/runners");
+}
+
+/* ── admin user management (3d) ───────────────────────────────── */
+
+export type UserStatus = "pending" | "approved" | "denied" | "banned";
+
+export interface TradingGuard {
+  blocked: boolean;
+  reasons: string[];
+}
+
+export interface AdminUserRow {
+  address: string;
+  role: string;
+  tier: string;
+  strategy: string | null;
+  agent_address: string | null;
+  agent_status: string | null;
+  active: boolean;
+  runner_status: string | null;
+  status: UserStatus;
+  created_at: string;
+  updated_at: string;
+  runner: RunnerInfo | null;
+  trading: TradingGuard;
+}
+
+export function fetchAdminUsers() {
+  return fetcher<{ users: AdminUserRow[]; ts: number }>("/api/admin/users");
+}
+
+/** POST a status change; on 409 the API detail is an object — surface its
+ *  reasons (trading guard) in the thrown Error message for the panel. */
+export async function setUserStatus(address: string, status: UserStatus): Promise<{ ok: true; status: UserStatus }> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}/api/admin/users/${address}/status`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (res.status === 401) throw new Error("unauthorized");
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+    const d = body?.detail;
+    if (d && typeof d === "object" && d !== null) {
+      const det = d as { error?: string; reasons?: string[] };
+      const why = Array.isArray(det.reasons) && det.reasons.length ? ` (${det.reasons.join("; ")})` : "";
+      throw new Error(`${det.error ?? `api ${res.status}`}${why}`);
+    }
+    throw new Error(typeof d === "string" ? d : `api ${res.status}`);
+  }
+  return res.json() as Promise<{ ok: true; status: UserStatus }>;
+}
+
+export function deactivateUser(address: string) {
+  return poster<{ ok: boolean; address: string; active: boolean }>(
+    `/api/admin/users/${address}/deactivate`,
+    {},
+  );
 }
 
 export function saveUserStrategy(strategy: string) {
