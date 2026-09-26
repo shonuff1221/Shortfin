@@ -11,6 +11,7 @@ import { AccountCard } from "@/components/user/account-card";
 import { GoLiveCard } from "@/components/user/go-live-card";
 import { StrategyMenu } from "@/components/user/strategy-menu";
 import { FundsGuide } from "@/components/user/funds-guide";
+import { OnboardingFlow } from "@/components/user/onboarding-flow";
 
 function ConsoleHeader({ address, role, tier }: { address: string; role: string; tier?: string }) {
   return (
@@ -144,6 +145,8 @@ export function UserConsole({ address, role }: { address: string; role: string }
           </Link>
         )}
       </div>
+
+      <OnboardingFlow address={address} user={user} />
 
       <AgentCard
         user={user}
