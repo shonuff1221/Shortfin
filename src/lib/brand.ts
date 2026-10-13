@@ -4,9 +4,9 @@
  */
 export const BRAND = {
   name: "Shortfin",
-  tagline: "Named for the fastest shark in the ocean. Managed perp grids on Hyperliquid — your keys, our edge.",
+  tagline: "Named for the fastest shark in the ocean. Automated market making on Hyperliquid — your keys, our edge.",
   contact: "desk@shortfin.trade", // waitlist mailto target
   heroHeadline: "Market-making returns. None of the screen time.",
   heroSub:
-    "Shortfin runs battle-tested grid strategies on Hyperliquid perps — around the clock, capital-efficient, and fully non-custodial. You watch the P&L. We do the rest.",
+    "Shortfin quotes inside the spread on Hyperliquid stock perps — around the clock, capital-efficient, and fully non-custodial. You watch the P&L. We do the rest.",
 } as const;

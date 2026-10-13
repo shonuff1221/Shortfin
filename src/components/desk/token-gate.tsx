@@ -4,11 +4,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BRAND } from "@/lib/brand";
-import { fetcher, setToken, clearToken } from "@/lib/api";
+import { fetchMM, setToken, clearToken } from "@/lib/api";
 
 /**
  * Desk gate: token entered once, stored client-side (localStorage), verified
- * against the brain API before the desk renders.
+ * against /api/mm (this app) before the desk renders. If the server has no
+ * MM_DESK_TOKEN configured the check is open — the gate then just confirms
+ * the feed is reachable.
  */
 export function TokenGate({ onVerified }: { onVerified: () => void }) {
   const [value, setValue] = useState("");
@@ -23,14 +25,14 @@ export function TokenGate({ onVerified }: { onVerified: () => void }) {
     setChecking(true);
     try {
       setToken(token);
-      await fetcher("/api/summary"); // 401 -> "unauthorized"
+      await fetchMM("paper"); // 401 -> "unauthorized"
       onVerified();
     } catch (err) {
       clearToken();
       setError(
         err instanceof Error && err.message === "unauthorized"
           ? "Token rejected — check it and try again."
-          : "Could not reach the brain API — is apps/api running on :8890?",
+          : "Could not reach the desk feed — is the paper engine writing status? (data/engine/paper/)",
       );
     } finally {
       setChecking(false);

@@ -60,17 +60,12 @@ const EyeIcon = () => (
 
 /* ── Illustrative desk mock (public page — no real account data) ────── */
 
-const mockRungs = [
-  { k: 1, state: "held" },
-  { k: 2, state: "held" },
-  { k: 3, state: "placed" },
-  { k: 4, state: "placed" },
-  { k: 5, state: "selling" },
-  { k: 6, state: "empty" },
-  { k: 7, state: "empty" },
-  { k: 8, state: "empty" },
-  { k: 9, state: "empty" },
-  { k: 10, state: "empty" },
+const mockBook = [
+  { px: "182.41", sz: "book", ours: false, mid: false },
+  { px: "182.43", sz: "ours", ours: true, mid: false },
+  { px: "182.64", sz: "spread 24bp", ours: false, mid: true },
+  { px: "182.66", sz: "ours", ours: true, mid: false },
+  { px: "182.69", sz: "book", ours: false, mid: false },
 ] as const;
 
 function DeskMock() {
@@ -83,13 +78,13 @@ function DeskMock() {
             Live desk — illustrative
           </span>
         </div>
-        <Badge tone="up">grid · long</Badge>
+        <Badge tone="up">mm · spread ≥ 20bp</Badge>
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
         {[
-          { label: "Equity", value: "$128,402", tone: "" },
-          { label: "Realized 24h", value: "+$1,284", tone: "text-up" },
-          { label: "Round trips", value: "212", tone: "" },
+          { label: "P&L today", value: "+$284", tone: "text-up" },
+          { label: "Fills", value: "1,926", tone: "" },
+          { label: "Quoting", value: "114 mkts", tone: "" },
         ].map((kpi) => (
           <div key={kpi.label} className="rounded-lg border border-border bg-muted/60 p-3">
             <div className="text-[10px] uppercase tracking-wider text-subtle-foreground sm:text-xs">{kpi.label}</div>
@@ -99,29 +94,25 @@ function DeskMock() {
       </div>
       <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3">
         <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-subtle-foreground sm:text-xs">
-          <span>Ladder · 10 rungs</span>
-          <span className="font-mono">1,556.2 anchor</span>
+          <span>Order book · xyz:NVDA</span>
+          <span className="font-mono">we quote inside the spread</span>
         </div>
-        <div className="mt-2 flex items-end gap-1" aria-hidden>
-          {mockRungs.map((r) => (
+        <div className="mt-2 space-y-1" aria-hidden>
+          {mockBook.map((r) => (
             <div
-              key={r.k}
-              className={`h-8 flex-1 rounded-sm sm:h-10 ${
-                r.state === "held"
-                  ? "bg-up/70"
-                  : r.state === "placed"
-                    ? "bg-up/25"
-                    : r.state === "selling"
-                      ? "bg-warn/60"
-                      : "bg-muted"
+              key={r.px}
+              className={`flex items-center justify-between rounded-sm px-2 py-1.5 font-mono text-xs ${
+                r.ours ? "bg-up/25 text-up" : r.mid ? "text-subtle-foreground" : "bg-muted text-muted-foreground"
               }`}
-            />
+            >
+              <span>{r.px}</span>
+              <span>{r.sz}</span>
+            </div>
           ))}
         </div>
         <div className="mt-2 flex gap-3 text-[10px] text-subtle-foreground sm:text-xs">
-          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-up/70" />held</span>
-          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-up/25" />placed</span>
-          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-warn/60" />selling</span>
+          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-up/70" />our quotes</span>
+          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-muted" />resting book</span>
         </div>
       </div>
     </div>
@@ -139,7 +130,7 @@ const steps = [
   {
     icon: <EngineIcon />,
     title: "We run the strats",
-    body: "Grid engines place, manage, and recycle limit orders across the best oscillating perp markets — 24/7, with kill-switch risk guards.",
+    body: "Market-making engines post bids and offers inside wide spreads on stock perps — capturing the spread on every round trip, 24/7, with kill-switch risk guards.",
   },
   {
     icon: <ChartIcon />,

@@ -4,41 +4,39 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { BRAND } from "@/lib/brand";
-import { clearToken, fetcher, getToken, type Grids, type Lab, type Positions, type Pulse, type Summary } from "@/lib/api";
+import { clearToken, fetchMM, fetcher, getToken, type MMResponse } from "@/lib/api";
 import { FinMark } from "@/components/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TokenGate } from "@/components/desk/token-gate";
-import { KpiRow } from "@/components/desk/kpi-row";
-import { PositionsPanel } from "@/components/desk/positions-panel";
-import { GridCard } from "@/components/desk/grid-card";
-import { FillsPanel } from "@/components/desk/fills-panel";
-import { LabPanel } from "@/components/desk/lab-panel";
-import { PulsesPanel } from "@/components/desk/pulses-panel";
-import { HistoryPanel } from "@/components/desk/history-panel";
-import { OperatePanel } from "@/components/desk/operate-panel";
+import {
+  CollectorCard,
+  DaysTable,
+  engineHealth,
+  FillsPanel,
+  MarketsPanel,
+  MmKpis,
+  ReplayTable,
+} from "@/components/desk/mm-panels";
 
-const POLL_MS = 30_000;
+const POLL_MS = 15_000;
 
-function useDeskData(active: boolean) {
-  const cfg = {
-    fetcher,
-    keepPreviousData: true,
-    refreshInterval: POLL_MS,
-    errorRetryInterval: 10_000,
-  } as const;
-  const summary = useSWR<Summary>(active ? "/api/summary" : null, fetcher, cfg);
-  const positions = useSWR<Positions>(active ? "/api/positions" : null, fetcher, cfg);
-  const grids = useSWR<Grids>(active ? "/api/grids" : null, fetcher, cfg);
-  const lab = useSWR<Lab>(active ? "/api/lab" : null, fetcher, cfg);
-  const pulses = useSWR<{ entries: Pulse[] }>(active ? "/api/pulses" : null, fetcher, cfg);
-  return { summary, positions, grids, lab, pulses };
-}
+const HEALTH = {
+  running: { tone: "up" as const, label: "running" },
+  stale: { tone: "warn" as const, label: "stale" },
+  halted: { tone: "down" as const, label: "halted" },
+  down: { tone: "down" as const, label: "down" },
+};
 
 export default function DeskPage() {
-  // auth state: "checking" -> "gate" | "in"
   const [auth, setAuth] = useState<"checking" | "gate" | "in">("checking");
-  const { summary, positions, grids, lab, pulses } = useDeskData(auth === "in");
+  const [mode, setMode] = useState<"paper" | "live">("paper");
+
+  const { data, error, isLoading } = useSWR<MMResponse>(
+    auth === "in" ? `/api/mm?mode=${mode}` : null,
+    fetcher,
+    { keepPreviousData: true, refreshInterval: POLL_MS, errorRetryInterval: 10_000 },
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +46,7 @@ export default function DeskPage() {
         return;
       }
       try {
-        await fetcher("/api/summary");
+        await fetchMM("paper");
         if (!cancelled) setAuth("in");
       } catch {
         if (!cancelled) setAuth("gate");
@@ -73,12 +71,13 @@ export default function DeskPage() {
   }
   if (auth === "gate") return <TokenGate onVerified={() => setAuth("in")} />;
 
-  const live = !summary.error && !positions.error;
-  const sziByMarket = new Map<string, number>();
-  for (const p of positions.data?.positions ?? []) {
-    sziByMarket.set(p.coin, p.szi);
-    sziByMarket.set(p.coin.split(":").pop() ?? p.coin, p.szi);
-  }
+  const s = data?.status;
+  const health = engineHealth(s, data?.generated);
+  const h = HEALTH[health];
+  const q = s?.config?.quoting ?? {};
+  const cfgLine = s
+    ? `spread ≥ ${q.min_spr_bp}bp · improve ${q.imp_bp}bp · $${q.clip_usd} clips ×${q.max_clips} · keep band ${q.keep_band_bp}bp`
+    : "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,18 +90,25 @@ export default function DeskPage() {
               </span>
               <span className="hidden text-sm font-semibold sm:block">{BRAND.name} desk</span>
             </Link>
-            <div className="flex min-w-0 gap-1.5 overflow-x-auto">
-              {(grids.data?.lineup?.markets ?? []).map((m) => (
-                <Badge key={m} tone="neutral" className="font-mono">
-                  {m}
-                </Badge>
-              ))}
-            </div>
+            <span className="truncate font-mono text-xs text-subtle-foreground">{cfgLine}</span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Badge tone={live ? "up" : "down"}>
-              <span className={`size-1.5 rounded-full ${live ? "bg-up animate-pulse" : "bg-down"}`} aria-hidden />
-              {live ? "live" : "reconnecting"}
+            <div className="flex rounded-md border border-border">
+              {(["paper", "live"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`px-2.5 py-1 text-xs font-medium capitalize transition-colors ${
+                    mode === m ? "bg-brand-soft text-brand" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <Badge tone={h.tone}>
+              <span className={`size-1.5 rounded-full ${health === "running" ? "bg-up animate-pulse" : health === "stale" ? "bg-warn" : "bg-down"}`} aria-hidden />
+              {h.label}
             </Badge>
             <Button variant="ghost" size="sm" onClick={logout}>
               Lock
@@ -112,45 +118,36 @@ export default function DeskPage() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-4 p-4 sm:space-y-6 sm:p-6">
-        <KpiRow
-          summary={summary.data}
-          positions={positions.data}
-          loading={summary.isLoading || positions.isLoading}
-        />
-
-        <OperatePanel />
-
-        <section aria-label="Grids" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {(grids.data?.markets ?? []).map((card) => (
-            <GridCard key={card.market} card={card} positionSzi={sziByMarket.get(card.market)} />
-          ))}
-          {grids.isLoading && !grids.data && (
-            <p className="text-sm text-muted-foreground">Loading grids…</p>
-          )}
-        </section>
-
-        <HistoryPanel />
-
-        <div className="grid gap-4 lg:grid-cols-5">
-          <div className="lg:col-span-3">
-            <PositionsPanel data={positions.data} />
+        {s?.halted && (
+          <div className="rounded-lg border border-down/40 bg-down-soft px-4 py-3 text-sm text-down">
+            Engine halted — {s.halt_reason}. Investigate the engine log before restarting.
           </div>
-          <div className="lg:col-span-2">
-            <FillsPanel fills={positions.data?.fills_recent} />
+        )}
+        {error && (
+          <div className="rounded-lg border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-warn">
+            Desk feed unavailable — {String(error.message ?? error)}. If this is live mode, the live engine may not be running yet.
           </div>
+        )}
+
+        <MmKpis status={s} loading={isLoading} />
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DaysTable rows={data?.daily ?? []} />
+          <ReplayTable rows={data?.replay ?? []} />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <LabPanel data={lab.data} />
+            <MarketsPanel markets={s?.markets} />
           </div>
-          <div className="lg:col-span-2">
-            <PulsesPanel entries={pulses.data?.entries} />
+          <div className="space-y-4 lg:col-span-2">
+            <FillsPanel fills={data?.fills} />
+            <CollectorCard collector={data?.collector} generated={data?.generated} />
           </div>
         </div>
 
         <footer className="pb-6 pt-2 text-center text-xs text-subtle-foreground">
-          Read + operate · polls every 30s · brain API on :8890 · actions audited
+          Market-making desk · reads engine state files directly · polls every {POLL_MS / 1000}s · {mode} mode
         </footer>
       </main>
     </div>

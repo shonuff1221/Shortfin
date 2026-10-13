@@ -58,7 +58,83 @@ export async function joinWaitlist(body: { email: string; wallet?: string; sourc
   return poster<{ status: "added" | "duplicate" }>("/api/waitlist", body);
 }
 
-/* ── API payload types (mirror apps/api) ─────────────────────────── */
+/* ── MM desk feed (GET /api/mm — served by this app from research/data) ── */
+
+export interface MMTotal {
+  pnl: number;
+  pnl_conservative: number;
+  vol: number;
+  fills: number;
+  actions: number;
+  rejects: number;
+  gross_inv: number;
+  quoting_now: number;
+}
+
+export interface MMMarket {
+  coin: string;
+  pnl: number;
+  "inv$": number;
+  fills: number;
+  vol: number;
+}
+
+export interface MMStatus {
+  mode: string;
+  updated: string;
+  uptime_h: number;
+  halted: boolean;
+  halt_reason: string;
+  today_pnl: number;
+  total: MMTotal;
+  bp_on_vol: number;
+  equity: number | null;
+  reserve_spent_today: number;
+  config: {
+    mode: string;
+    quoting: Record<string, number>;
+    risk: Record<string, number | boolean>;
+  };
+  markets: MMMarket[];
+}
+
+export interface MMCollStatus {
+  started: number;
+  rows: Record<string, number>;
+  last_msg: Record<string, number>;
+  reconnects: number;
+  coins: number;
+  errors: number;
+  uptime_h: number;
+  stale_conns: string[];
+  updated: string;
+}
+
+export interface MMFill {
+  ts: string;
+  coin: string;
+  side: string;
+  px: string;
+  units: string;
+  inv_after: string;
+}
+
+export interface MMResponse {
+  ok: boolean;
+  mode: "paper" | "live";
+  status: MMStatus | null;
+  daily: Record<string, string>[];
+  replay: Record<string, string>[];
+  collector: MMCollStatus | null;
+  fills: MMFill[];
+  generated: string;
+}
+
+export function fetchMM(mode: "paper" | "live") {
+  return fetcher<MMResponse>(`/api/mm?mode=${mode}`);
+}
+
+/* ── user console (/api/user/*) — session-cookie auth ─────────────── */
 
 export interface Position {
   coin: string;
@@ -80,147 +156,6 @@ export interface Fill {
   closedPnl: string | null;
   fee: string | null;
 }
-
-export interface Positions {
-  account_value: number;
-  usdc: number;
-  allocated_margin: number;
-  unrealized_pnl: number;
-  positions: Position[];
-  fills_recent: Fill[];
-  fills_24h: number;
-  rts_24h: number;
-  fees_24h: number;
-  realized_24h: number;
-  volume_24h: number;
-}
-
-export interface GridCard {
-  market: string;
-  dex: string;
-  unknown?: boolean;
-  state: {
-    buys_placed?: Record<string, boolean>;
-    sells_placed?: Record<string, boolean>;
-    fills_buy?: number;
-    fills_sell?: number;
-    realized_bps?: number;
-    worst_pot_bps?: number;
-  };
-  placed_buy_rungs: number;
-  ladder_depth: number;
-  resting_buys: number[];
-  resting_sells: number[];
-  /** Active rung-spacing override (bps) from data/lab/SPACING_* — null = session auto */
-  spacing_override: number | null;
-  direction: {
-    dir: string;
-    reason: string;
-    drift_1h?: number;
-    drift_4h?: number;
-    confidence?: number;
-  };
-}
-
-export interface Grids {
-  markets: GridCard[];
-  lineup: { markets: string[]; updated: number; reason?: string } | null;
-}
-
-export interface LabMarket {
-  drift24h: number | null;
-  range24h: number | null;
-  oscillating: boolean | null;
-  best_spacing: number | null;
-  best_net_bps_day: number | null;
-  ours: boolean;
-  our_realized_24h?: number;
-}
-
-export interface Lab {
-  ts: number;
-  markets: Record<string, LabMarket>;
-  correlated_dump: boolean;
-}
-
-export interface DirectionEntry {
-  dir: string;
-  reason: string;
-  drift_1h?: number;
-  drift_4h?: number;
-  our_pnl_1h?: number;
-  our_rts_1h?: number;
-  confidence?: number;
-}
-
-export interface Pulse {
-  date: string;
-  time: string;
-  text: string;
-}
-
-export interface Summary {
-  ts: number;
-  age_s: number | null;
-  ok: boolean;
-  equity: number;
-  equity_source: string;
-  realized_24h: number;
-  fees_24h: number;
-  fills_24h: number;
-  rts_24h: number;
-  volume_24h: number;
-  issues: string[];
-  markets: Record<string, { buys: number; exits: number; szi: number; upnl: number }>;
-}
-
-/* ── write surface (/api/operate + /api/actions) ───────────────────── */
-
-export const OPERATE_CANDIDATES = [
-  "io:ANTH",
-  "xyz:CL",
-  "io:SNDK",
-  "xyz:SKHX",
-  "io:NBIS",
-  "xyz:MU",
-] as const;
-
-export interface OperateCandidate {
-  market: string;
-  frozen: boolean;
-  in_lineup: boolean;
-}
-
-export interface Operate {
-  candidates: OperateCandidate[];
-  lineup: { markets: string[]; updated: number; reason?: string } | null;
-  ts: number;
-}
-
-export type DeskAction = "rotate" | "freeze" | "unfreeze" | "kill" | "spacing";
-
-export const SPACING_CHOICES = [5, 8, 10] as const;
-
-export interface ActionResult {
-  ok: boolean;
-  action: DeskAction;
-  args: { market?: string; markets?: string[]; bps?: number | null };
-  note?: string;
-  exit_code: number | null;
-  output: string;
-  elapsed_s: number;
-}
-
-export function runAction(body: {
-  action: DeskAction;
-  market?: string;
-  markets?: string[];
-  bps?: number | null;
-}) {
-  return poster<ActionResult>("/api/actions", body);
-}
-
-/* ── user console (/api/user/*) — session-cookie auth ─────────────── */
 
 export interface StrategyOption {
   id: string;
