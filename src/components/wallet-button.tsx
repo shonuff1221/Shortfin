@@ -39,13 +39,30 @@ function ConnectFlow() {
     setBusy(true);
     try {
       const injectedConnector = connectors.find((c) => c.id === "injected");
-      if (!injectedConnector) throw new Error("no injected wallet found — install MetaMask/Brave");
+      const wcConnector = connectors.find((c) => c.id === "walletConnect");
       let acct = address;
+      let conn: Connector | undefined = activeConnector ?? undefined;
       if (!acct) {
-        const res = await connectAsync({ connector: injectedConnector });
-        acct = res.accounts[0];
+        // Browser wallet first; fall back to WalletConnect (mobile browsers, QR).
+        let res: Awaited<ReturnType<typeof connectAsync>> | null = null;
+        if (injectedConnector) {
+          try {
+            res = await connectAsync({ connector: injectedConnector });
+            conn = injectedConnector;
+          } catch {
+            // no injected provider (mobile browser) — try WalletConnect below
+          }
+        }
+        if (!res && wcConnector) {
+          res = await connectAsync({ connector: wcConnector });
+          conn = wcConnector;
+        }
+        if (!res) throw new Error("no wallet available — install MetaMask or scan the QR");
+        const first = res.accounts[0];
+        acct = typeof first === "string" ? first : first?.address;
       }
-      const conn: Connector = activeConnector ?? injectedConnector;
+      if (!acct) throw new Error("wallet returned no account");
+      if (!conn) throw new Error("no wallet connector available");
       const lower = acct.toLowerCase();
       const { nonce } = (await api("/api/auth/nonce")) as { nonce: string };
       const message = `Shortfin sign-in\nnonce: ${nonce}\naddress: ${lower}`;
